@@ -1,0 +1,8 @@
+.DS_Store
+.env
+__pycache__/
+credentials/
+initial_docs/
+main.ipynb
+venv/
+.venv
