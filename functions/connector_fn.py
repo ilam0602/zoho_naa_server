@@ -90,6 +90,8 @@ def close_case_from_zoho(matterID :int) -> dict:
         print('caseID',caseID)
         close_case_from_zoho = closeCase(caseID)
         print(f'close_case_from_zoho {close_case_from_zoho}')
+        if 'error' in close_case_from_zoho.keys():
+            return {"error": close_case_from_zoho.get('error'), "statusCode":400}
         return {"response": close_case_from_zoho, "statusCode": 200}
 
     except Exception as e:

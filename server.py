@@ -42,7 +42,6 @@ def create_naa_case_endpoint():
         return jsonify({"error": "'matterID' must be an integer"}), 400
 
     result = create_case_from_zoho(matterID)
-    print(f'result= {result}')
 
     # extract statusCode if provided, else default
     status = result.pop('statusCode', None)
@@ -50,6 +49,8 @@ def create_naa_case_endpoint():
         status = 200 if 'response' in result else 500
 
     return jsonify(result), status
+    
+
 @app.route('/closeNAACaseFromZoho', methods=['POST'])
 def close_naa_case_endpoint():
     # Extract token from Authorization header
@@ -77,7 +78,6 @@ def close_naa_case_endpoint():
         return jsonify({"error": "'matterID' must be an integer"}), 400
 
     result = close_case_from_zoho(matterID)
-    print(f'result= {result}')
 
     # extract statusCode if provided, else default
     status = result.pop('statusCode', None)
