@@ -110,3 +110,24 @@ def addCaseIDToZohoRecord(matterID:int,caseID:int) -> dict:
     response = requestPut(headers=headers,url=url,data=data)
     return response.json()
 
+@ensure_authorized
+def updateResults(matterID:int,result:str) -> dict:
+    formatToken = f"Zoho-oauthtoken {ACCESS_TOKEN}"
+    headers = {
+        "Authorization" :formatToken 
+    }
+    data = {
+        "data":[
+            {
+                "NAAM_Results": result,
+            }
+        ]
+    }
+    url = f"{baseUrl}{matterID}"
+    response = requestPut(headers=headers,url=url,data=data)
+    return response.json()
+
+
+@ensure_authorized
+def getListOfSyncIds() -> dict:
+    return {'response' : ['4285859000239006912']}

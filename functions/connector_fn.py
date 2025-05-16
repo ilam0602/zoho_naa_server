@@ -1,5 +1,5 @@
-from functions.api.naa import postCase,loginNAA,closeCase
-from functions.api.zoho import searchZohoRecords, addCaseIDToZohoRecord
+from functions.api.naa import postCase,loginNAA,closeCase,getCaseByID
+from functions.api.zoho import searchZohoRecords, addCaseIDToZohoRecord, getListOfSyncIds,updateResults
 
 
 
@@ -96,3 +96,30 @@ def close_case_from_zoho(matterID :int) -> dict:
 
     except Exception as e:
         return {"error": str(e)}
+
+def sync_cases():
+    try:
+        #get list of matter ids
+        matterIds = getListOfSyncIds()['response']
+        for matterId in matterIds:
+            #get naa case id from zoho record
+            naaCaseID = searchZohoRecords(matterId)['data'][0]['NAAM_CaseID']
+            print('naaCaseID',naaCaseID)
+            #get naa case details
+            naaCaseDetails = getCaseByID(naaCaseID)
+
+            #read case_status
+            caseStatus = naaCaseDetails['caseStatus']
+            print('caseStatus',caseStatus)
+
+            #update zoho record with naa case status
+            res = updateResults(matterId,str(caseStatus))
+            print('update results res',res)
+
+
+    except Exception as e:
+        return {"error": str(e)}
+
+
+
+
