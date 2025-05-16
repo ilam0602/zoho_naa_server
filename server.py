@@ -1,7 +1,10 @@
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 import os
-from functions.connector_fn import create_case_from_zoho,close_case_from_zoho
+import threading
+import time
+
+from functions.connector_fn import create_case_from_zoho, close_case_from_zoho, sync_cases
 
 app = Flask(__name__)
 load_dotenv(override=True)
@@ -11,8 +14,6 @@ def checkAuth(token: str):
     """
     Check if the provided token matches the server password.
     """
-    print(f"Token: {token}")
-    print(f"Server Password: {SERVER_PASS}")
     return token == SERVER_PASS
 
 @app.route('/createNAACaseFromZoho', methods=['POST'])
@@ -42,14 +43,11 @@ def create_naa_case_endpoint():
         return jsonify({"error": "'matterID' must be an integer"}), 400
 
     result = create_case_from_zoho(matterID)
-
-    # extract statusCode if provided, else default
     status = result.pop('statusCode', None)
     if status is None:
         status = 200 if 'response' in result else 500
 
     return jsonify(result), status
-    
 
 @app.route('/closeNAACaseFromZoho', methods=['POST'])
 def close_naa_case_endpoint():
@@ -78,15 +76,36 @@ def close_naa_case_endpoint():
         return jsonify({"error": "'matterID' must be an integer"}), 400
 
     result = close_case_from_zoho(matterID)
-
-    # extract statusCode if provided, else default
     status = result.pop('statusCode', None)
     if status is None:
         status = 200 if 'response' in result else 500
 
     return jsonify(result), status
 
+def _background_sync_loop():
+    """Background thread: sync_cases every hour, forever."""
+    while True:
+        try:
+            sync_cases()
+        except Exception:
+            app.logger.exception("Error during sync_cases")
+        # Sleep for 3600 seconds (1 hour)
+        time.sleep(3600)
+
+def start_background_sync():
+    """
+    Spawn and start the daemon thread for hourly sync.
+    Call this before app.run().
+    """
+    thread = threading.Thread(target=_background_sync_loop, daemon=True)
+    thread.start()
+    app.logger.info("Background sync thread started, will run every hour.")
+
 if __name__ == '__main__':
+    # Start hourly sync thread
+    start_background_sync()
+
+    # Run Flask app
     app.run(debug=True, port=8081)
-    #prod
-    # app.run(host='0.0.0.0', port=8765, debug=True)
+    # prod:
+    # app.run(host='0.0.0.0', port=8765, debug=False)

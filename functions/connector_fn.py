@@ -106,15 +106,19 @@ def sync_cases():
             naaCaseID = searchZohoRecords(matterId)['data'][0]['NAAM_CaseID']
             print('naaCaseID',naaCaseID)
             #get naa case details
-            naaCaseDetails = getCaseByID(naaCaseID)
+            if naaCaseID is not None:
+                print(f"NAA case ID is not None for matter ID {matterId} {naaCaseID}")
+                naaCaseDetails = getCaseByID(naaCaseID)
 
-            #read case_status
-            caseStatus = naaCaseDetails['caseStatus']
-            print('caseStatus',caseStatus)
+                #read case_status
+                caseStatus = naaCaseDetails['caseStatus']
+                print('caseStatus',caseStatus)
 
-            #update zoho record with naa case status
-            res = updateResults(matterId,str(caseStatus))
-            print('update results res',res)
+                #update zoho record with naa case status
+                res = updateResults(matterId,str(caseStatus))
+                print('update results res',res)
+            else:
+                print(f"Error: NAA case ID is None for matter ID {matterId}")
 
 
     except Exception as e:

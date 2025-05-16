@@ -130,4 +130,36 @@ def updateResults(matterID:int,result:str) -> dict:
 
 @ensure_authorized
 def getListOfSyncIds() -> dict:
-    return {'response' : ['4285859000239006912']}
+    formatToken = f"Zoho-oauthtoken {ACCESS_TOKEN}"
+
+    headers = {
+        "Authorization" :formatToken 
+    }
+    # url = f"{baseUrl}search?criteria=id:equals:{matterID}"
+    urlSubmit = f"{baseUrl}search?criteria=Submission_Status:equals:Submitted"
+
+    submittedResponse = requestGet(headers=headers,url=urlSubmit)
+    print(f'response {submittedResponse}')
+
+    submittedResponses = []
+    submittedResponses = [response['id'] for response in submittedResponse.json()['data']] if len(submittedResponse.json()['data']) > 0 else []
+    print(f'submittedResponses {len(submittedResponses)}')
+
+
+    urlDead = f"{baseUrl}search?criteria=Submission_Status:equals:Dead"
+    deadResponse = requestGet(headers=headers,url=urlDead)
+    deadResponses = []
+    deadResponses = [response['id'] for response in deadResponse.json()['data']] if len(deadResponse.json()['data']) > 0 else []
+    print(f'deadResponses {len(deadResponses)}')
+
+    urlNew = f"{baseUrl}search?criteria=Submission_Status:equals:New"
+    newResponse = requestGet(headers=headers,url=urlNew)
+    newResponses = []
+    newResponses = [response['id'] for response in newResponse.json()['data']] if len(newResponse.json()['data']) > 0 else []
+    print(f'newResponses {len(newResponses)}')
+    print(f'newResponse {newResponse.json()}')
+
+
+
+    
+    return {'response': submittedResponses + deadResponses + newResponses}
