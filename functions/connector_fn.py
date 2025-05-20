@@ -112,10 +112,19 @@ def sync_cases():
 
                 #read case_status
                 caseStatus = naaCaseDetails['caseStatus']
+                caseStatusDict = {
+                    1: 'Available',
+                    2: 'Assigned',
+                    3: 'Closed',
+                    5: 'Cancelled',
+                    6: 'Pending',
+                    7: 'Open',
+                    9: 'Soft Lock'
+                }
                 print('caseStatus',caseStatus)
 
                 #update zoho record with naa case status
-                res = updateResults(matterId,str(caseStatus))
+                res = updateResults(matterId,caseStatusDict[caseStatus])
                 print('update results res',res)
             else:
                 print(f"Error: NAA case ID is None for matter ID {matterId}")
