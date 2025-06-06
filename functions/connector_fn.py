@@ -46,6 +46,7 @@ def create_case_from_zoho(matterID: int) -> dict:
     Pulls details from Zoho, posts to NAA and writes the new NAA caseID back to Zoho.
     """
     try:
+        print('hello world111111')
         zohoDetails = extract_fields_from_zoho(
             searchZohoRecords(matterID),
             matterID
