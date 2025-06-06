@@ -33,7 +33,10 @@ def create_naa_case_endpoint():
     if not checkAuth(token):
         return jsonify({"error": "Unauthorized"}), 401
 
-    data = request.get_json(force=True)
+    data = request.get_json(force=True) if request.is_json else request.form.to_dict()
+    print(f"Received data: {data}")
+    print(request.is_json)
+    print(request.form)
     if not data or 'matterID' not in data:
         return jsonify({"error": "Missing 'matterID' in request body"}), 400
 
@@ -66,7 +69,9 @@ def close_naa_case_endpoint():
     if not checkAuth(token):
         return jsonify({"error": "Unauthorized"}), 401
 
-    data = request.get_json(force=True)
+    print(request.is_json)
+    print(request.form)
+    data = request.get_json(force=True) if request.is_json else request.form.to_dict()
     if not data or 'matterID' not in data:
         return jsonify({"error": "Missing 'matterID' in request body"}), 400
 
