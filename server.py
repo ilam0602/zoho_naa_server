@@ -108,7 +108,7 @@ def start_background_sync():
 
 if __name__ == '__main__':
     # Start hourly sync thread
-    start_background_sync()
+    # start_background_sync()
 
     # Run Flask app
     app.run(debug=True, port=8081)

@@ -17,11 +17,14 @@ def extract_fields_from_zoho(zohoDetails:dict,requestId:str) -> dict:
         outCourtZip = zohoDetails['data'][0]['Zip_Code']
         hearingType = zohoDetails['data'][0]['Pick_List_5']
         hearingDate = zohoDetails['data'][0]['Hearing_Date']
-        fileNumber = zohoDetails['data'][0]['Case_Number']
-        defendantPlantiff = True
+        defendantPlantiff = False
         detailedInstructions = zohoDetails['data'][0]['Desired_Result']
-        #look at this
-        attorneyRecord= requestId
+        attorneyRecord=zohoDetails['data'][0]['Attorney_of_Record']
+        fileNumber= zohoDetails['data'][0]['Client_Reference']
+        caseNumber = zohoDetails['data'][0]['Case_Number']
+
+        caseName = zohoDetails['data'][0]['Case_Name1']
+        caseClientName = zohoDetails['data'][0]['Name']
 
         return {
             'outCourtState': outCourtState,
@@ -35,7 +38,10 @@ def extract_fields_from_zoho(zohoDetails:dict,requestId:str) -> dict:
             'fileNumber': fileNumber,
             'defendantPlantiff': defendantPlantiff,
             'detailedInstructions': detailedInstructions,
-            'attorneyRecord': attorneyRecord
+            'attorneyRecord': attorneyRecord,
+            'caseName': caseName,
+            'caseClientName':caseClientName,
+            'caseNumber': caseNumber
         }
     except KeyError as e:
         print(f"Key error: {e}")
@@ -68,6 +74,7 @@ def create_case_from_zoho(matterID: int) -> dict:
             searchZohoRecords(matterID),
             matterID
         )
+        print('zohoDetails',zohoDetails)
 
         # ❷ create on NAA
         caseID = postCase(
@@ -82,7 +89,10 @@ def create_case_from_zoho(matterID: int) -> dict:
             fileNumber=zohoDetails['fileNumber'],
             defendantPlantiff=zohoDetails['defendantPlantiff'],
             detailedInstructions=zohoDetails['detailedInstructions'],
-            attorneyRecord=zohoDetails['attorneyRecord']
+            attorneyRecord=zohoDetails['attorneyRecord'],
+            caseName=zohoDetails['caseName'],
+            caseClientName=zohoDetails['caseClientName'],
+            caseNumber=zohoDetails['caseNumber']
         )
         print(f"NAA caseID: {caseID}")
 

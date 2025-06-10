@@ -52,6 +52,7 @@ ACCESS_TOKEN = cred['access_token']
 
 MODULE_API_NAME = 'Appearances1'
 baseUrl = f'{ZOHO_API_DOMAIN}/crm/v7/{MODULE_API_NAME}/'
+filesUrl = f'{ZOHO_API_DOMAIN}/crm/v7/files?id='
 
 def reInit():
     global ZOHO_CLIENT_ID, ZOHO_CLIENT_SECRET, ZOHO_REDEIRECT_URI
@@ -184,3 +185,16 @@ def getListOfSyncIds() -> dict:
 
     
     return {'response': submittedResponses + deadResponses + newResponses}
+
+
+#TODO TEST
+#add case id to zoho record
+@ensure_authorized 
+def getFileFromZoho(fileId:str) -> dict:
+    formatToken = f"Zoho-oauthtoken {ACCESS_TOKEN}"
+    headers = {
+        "Authorization" :formatToken 
+    }
+    url = f'${filesUrl}{fileId}'
+    response = requestGet(headers=headers,url=url)
+    return response.json()
