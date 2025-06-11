@@ -1,10 +1,11 @@
-from functions.api.naa import postCase,loginNAA,closeCase,getCaseByID
-from functions.api.zoho import searchZohoRecords, addCaseIDToZohoRecord, getListOfSyncIds,updateResults
+from functions.api.naa import postCase,loginNAA,closeCase,getCaseByID,uploadFile
+from functions.api.zoho import searchZohoRecords, addCaseIDToZohoRecord, getListOfSyncIds,updateResults,getFileFromZoho,searchZohoContacts
+import base64
 
 
 
 
-def extract_fields_from_zoho(zohoDetails:dict,requestId:str) -> dict:
+def extract_fields_from_zoho(zohoDetails:dict,name:str,requestId:str) -> dict:
     try:
         # Extract the required fields from the Zoho details
         # TODO MAKE SURE FIELD VALUES ARE CORRECT ON ZOHO SIDE
@@ -24,7 +25,7 @@ def extract_fields_from_zoho(zohoDetails:dict,requestId:str) -> dict:
         caseNumber = zohoDetails['data'][0]['Case_Number']
 
         caseName = zohoDetails['data'][0]['Case_Name1']
-        caseClientName = zohoDetails['data'][0]['Name']
+        caseClientName = name
 
         hearingHour= str(zohoDetails['data'][0]['Hearing_Hour'])
         hearingMinute= str(zohoDetails['data'][0]['Hearing_Minute'])
@@ -76,8 +77,13 @@ def create_case_from_zoho(matterID: int) -> dict:
     """
     def _core() -> dict:           # ➊ inner fn keeps retry helper simple
         print("create_case_from_zoho – starting")
+        recs = searchZohoRecords(matterID)
+        nameRes = searchZohoContacts(recs['data'][0]['Client_Reference'])
+        name = nameRes['data'][0]['Full_Name']
+
         zohoDetails = extract_fields_from_zoho(
-            searchZohoRecords(matterID),
+            recs,
+            name,
             matterID
         )
         print('zohoDetails',zohoDetails)
@@ -137,6 +143,34 @@ def close_case_from_zoho(matterID: int) -> dict:
         return _with_single_retry(_core)
     except Exception as e:
         print(f"[close_case_from_zoho] second failure: {e}")
+        return {"error": str(e), "statusCode": 500}
+
+
+def get_doc_from_zoho_upload_to_naa(docID: str, matterID: str) -> dict:
+    def _core() -> dict:
+        # 1) fetch from Zoho
+        res0 = getFileFromZoho(docID)
+        raw = res0['response']
+
+        # 2) if it came back as a str, assume it's base64 and decode it
+        if isinstance(raw, str):
+            file_bytes = base64.b64decode(raw)
+        elif isinstance(raw, (bytes, bytearray)):
+            file_bytes = bytes(raw)
+        else:
+            raise TypeError(f"Unexpected payload type: {type(raw)}")
+
+        # 3) pick a filename (you can customize this)
+        filename = f"{docID}.pdf"
+
+        # 4) upload as multipart
+        response = uploadFile(matterID, file_bytes, filename)
+        return response
+
+    try:
+        return _with_single_retry(_core)
+    except Exception as e:
+        print(f"[get_doc_from_zoho_upload_to_naa] second failure: {e}")
         return {"error": str(e), "statusCode": 500}
 
 

@@ -52,6 +52,7 @@ ACCESS_TOKEN = cred['access_token']
 
 MODULE_API_NAME = 'Appearances1'
 baseUrl = f'{ZOHO_API_DOMAIN}/crm/v7/{MODULE_API_NAME}/'
+baseUrlContacts = f'{ZOHO_API_DOMAIN}/crm/v7/Contacts/search?criteria=Account_Name:equals:'
 filesUrl = f'{ZOHO_API_DOMAIN}/crm/v7/files?id='
 
 def reInit():
@@ -91,6 +92,41 @@ def searchZohoRecords(matterID: int) -> Dict[str, Any]:
     """
     headers = {"Authorization": f"Zoho-oauthtoken {ACCESS_TOKEN}"}
     url = f"{baseUrl}search?criteria=id:equals:{matterID}"
+    print(f"url {url}")
+
+    response = requestGet(headers=headers, url=url)
+    print(f"response in searchZohoRecords {response}")  # e.g. <Response [204]>
+    print(f'response.status_code {response.status_code}')
+
+    #––– 1. Enforce exact-200 success –––––––––––––––––––––––––––––––––––
+    if response.status_code == 204:
+        raise ZohoApiError(
+            f"Zoho search failed (HTTP {response.status_code}): empty response from search zohoRecords for matterID {matterID}"
+        )
+
+    #––– 2. Parse JSON safely –––––––––––––––––––––––––––––––––––––––––––
+    try:
+        return response.json()
+    except (json.JSONDecodeError, ValueError) as exc:
+        # 200 with an empty body (204 scenario) triggers this
+        raise ZohoApiError(
+            f"Zoho search returned invalid JSON: {exc} — body: {response.text}"
+        ) from exc
+
+
+@ensure_authorized
+def searchZohoContacts(contactID: str) -> Dict[str, Any]:
+    """
+    Look up a Zoho record by its ID.
+
+    Raises
+    ------
+    ZohoApiError
+        If the HTTP status is anything other than 200 OK, or if the body
+        can’t be parsed as JSON.
+    """
+    headers = {"Authorization": f"Zoho-oauthtoken {ACCESS_TOKEN}"}
+    url = f"{baseUrlContacts}{contactID}"
     print(f"url {url}")
 
     response = requestGet(headers=headers, url=url)
@@ -197,4 +233,4 @@ def getFileFromZoho(fileId:str) -> dict:
     }
     url = f'{filesUrl}{fileId}'
     response = requestGet(headers=headers,url=url)
-    return response.json()
+    return {'statusCode': response.status_code, 'response': response.content}

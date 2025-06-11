@@ -8,17 +8,27 @@ def _request(
     params: Optional[Dict[str, Any]] = None,
     json: Optional[Dict[str, Any]] = None,
     data: Optional[Dict[str, Any]] = None,
+    files: Optional[Dict[str, Any]] = None,
 ) -> requests.Response:
     """
     Internal helper to make an HTTP request with uniform error handling.
     Prints the error detail only for POST requests, then raises a new HTTPError
-    with status code and detail.
+    with status code and detail. Supports JSON, form-encoded data, or multipart files.
     """
-    response = requests.request(method, url, headers=headers, params=params, json=json, data=data)
+    response = requests.request(
+        method,
+        url,
+        headers=headers,
+        params=params,
+        json=json,
+        data=data,
+        files=files,            # ← pass through multipart uploads
+    )
     try:
         response.raise_for_status()
     except requests.exceptions.HTTPError:
         # Try to extract a JSON “message” or fall back to raw text
+        print('hello world')
         try:
             detail = response.json().get("message", response.text)
         except ValueError:
@@ -27,6 +37,7 @@ def _request(
         # Only POST prints the detail, just like the original
         if method.upper() == "POST":
             print(f"detail {detail}")
+        print(f"response.status_code {response.status_code}")
 
         # Re-raise with more context
         raise requests.exceptions.HTTPError(
@@ -39,20 +50,33 @@ def requestPost(
     url: str,
     payload: Optional[Dict[str, Any]] = None,
     formbody: Optional[Dict[str, Any]] = None,
+    files:   Optional[Dict[str, Any]] = None,
     headers: Optional[Dict[str, Any]] = None
 ) -> requests.Response:
     """
-    Sends a POST request. Pass `payload` for a JSON body, or `formbody` for
-    application/x-www-form-urlencoded. If both are provided, `formbody` takes
-    precedence.
+    Sends a POST request.
+      - If `files` is provided, does a multipart/form-data upload.
+      - Elif `formbody` is provided, sends application/x-www-form-urlencoded.
+      - Else, sends JSON (`payload`).
     """
+    if files is not None:
+        # multipart/form-data; requests will set Content-Type and boundary
+        return _request(
+            "POST",
+            url,
+            headers=headers,
+            files=files
+        )
+
+    # fall back to form-encoded vs JSON
     return _request(
         "POST",
         url,
         headers=headers,
-        json=None if formbody is not None else payload,
-        data=formbody
+        data=formbody,
+        json=None if formbody is not None else payload
     )
+
 
 def requestGet(
     url: str,

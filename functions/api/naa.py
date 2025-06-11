@@ -93,19 +93,22 @@ def closeCase(caseID: int) -> dict:
 
 #TODO TEST
 @ensure_authorized
-def uploadFile(caseID: int, file: str) -> dict:
+def uploadFile(caseID: int, file_bytes: bytes, filename: str = "document.pdf") -> dict:
     headers = {"Authorization": f"Bearer {token}"}
     url = f"{getNAACasesUrl}/{caseID}/upload"
 
-    # send as application/x-www-form-urlencoded: file=<file>
+    files = {
+        "file": (filename, file_bytes, "application/pdf"),
+    }
+    print('hello world')
     response = requestPost(
         url,
-        formbody={"file": file},
+        files=files,
         headers=headers
     )
-
-    # assuming the API returns JSON
+    print(f"uploadFile response: {response}")
     return response.json()
+
 
 @ensure_authorized
 def postCase(
