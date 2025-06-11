@@ -31,6 +31,8 @@ def extract_fields_from_zoho(zohoDetails:dict,name:str,requestId:str) -> dict:
         hearingMinute= str(zohoDetails['data'][0]['Hearing_Minute'])
         if len(hearingHour)==1:
             hearingHour = '0' + hearingHour
+        if len(hearingMinute)==1:
+            hearingMinute = '0' + hearingHour
         hearingDate = zohoDetails['data'][0]['Hearing_Date'] + 'T' + hearingHour + ':' + hearingMinute + ':00'
 
         return {
