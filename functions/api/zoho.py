@@ -195,6 +195,6 @@ def getFileFromZoho(fileId:str) -> dict:
     headers = {
         "Authorization" :formatToken 
     }
-    url = f'${filesUrl}{fileId}'
+    url = f'{filesUrl}{fileId}'
     response = requestGet(headers=headers,url=url)
     return response.json()
