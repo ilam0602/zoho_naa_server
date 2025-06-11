@@ -6,7 +6,7 @@ from functions.helpers.helpers import requestGet, requestPost, requestPatch,requ
 from functools import wraps
 from requests.exceptions import HTTPError
 
-load_dotenv()
+load_dotenv(override=True)
 loginNAAEmail = os.getenv("NAA_EMAIL")
 loginNAAPassword = os.getenv("NAA_PASSWORD")
 
@@ -91,6 +91,22 @@ def closeCase(caseID: int) -> dict:
     response = requestPut(url=url, headers=headers)
     return 'success in closeCase for caseID: '+str(caseID)
 
+#TODO TEST
+@ensure_authorized
+def uploadFile(caseID: int, file: str) -> dict:
+    headers = {"Authorization": f"Bearer {token}"}
+    url = f"{getNAACasesUrl}/{caseID}/upload"
+
+    # send as application/x-www-form-urlencoded: file=<file>
+    response = requestPost(
+        url,
+        formbody={"file": file},
+        headers=headers
+    )
+
+    # assuming the API returns JSON
+    return response.json()
+
 @ensure_authorized
 def postCase(
         outCourtState: str,
@@ -104,7 +120,11 @@ def postCase(
         fileNumber: str,
         defendantPlantiff: bool,
         detailedInstructions: str,
-        attorneyRecord: str
+        attorneyRecord: str,
+        caseName:str,
+        caseClientName:str,
+        caseNumber: str
+        
     ) -> dict:
     headers = {"Authorization": f"Bearer {token}"}
     body = {
@@ -119,7 +139,10 @@ def postCase(
         "fileNumber": fileNumber,
         "defendantPlantiff": defendantPlantiff,
         "detailedInstructions": detailedInstructions,
-        "attorneyRecord": attorneyRecord
+        "attorneyRecord": attorneyRecord,
+        "caseName": caseName,
+        "caseClientName": caseClientName,
+        "caseNumber": caseNumber
     }
     url = getNAACasesUrl
     response = requestPost(url=url, headers=headers, payload=body)

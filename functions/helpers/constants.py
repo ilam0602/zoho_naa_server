@@ -1,2 +1,2 @@
-loginNAAPostUrl = "https://demo.nationwideappearanceattorneys.net/api/users/login"
-getNAACasesUrl = 'https://demo.nationwideappearanceattorneys.net/api/cases'
+loginNAAPostUrl = "https://nationwideappearanceattorneys.net/api/users/login"
+getNAACasesUrl = 'https://nationwideappearanceattorneys.net/api/cases'
