@@ -9,6 +9,7 @@ def extract_fields_from_zoho(zohoDetails:dict,requestId:str) -> dict:
         # Extract the required fields from the Zoho details
         # TODO MAKE SURE FIELD VALUES ARE CORRECT ON ZOHO SIDE
         # TODO FINALIZE ALL FIELDS ON NAA SIDE
+        print('zohoDetails',zohoDetails['data'][0])
         outCourtState = zohoDetails['data'][0]['State']
         outCourtCounty = zohoDetails['data'][0]['County2']['name']
         outCourtCity = zohoDetails['data'][0]['City']
@@ -16,7 +17,6 @@ def extract_fields_from_zoho(zohoDetails:dict,requestId:str) -> dict:
         outCourtAddress = zohoDetails['data'][0]['Address']
         outCourtZip = zohoDetails['data'][0]['Zip_Code']
         hearingType = zohoDetails['data'][0]['Pick_List_5']
-        hearingDate = zohoDetails['data'][0]['Hearing_Date']
         defendantPlantiff = False
         detailedInstructions = zohoDetails['data'][0]['Desired_Result']
         attorneyRecord=zohoDetails['data'][0]['Attorney_of_Record']
@@ -25,6 +25,12 @@ def extract_fields_from_zoho(zohoDetails:dict,requestId:str) -> dict:
 
         caseName = zohoDetails['data'][0]['Case_Name1']
         caseClientName = zohoDetails['data'][0]['Name']
+
+        hearingHour= str(zohoDetails['data'][0]['Hearing_Hour'])
+        hearingMinute= str(zohoDetails['data'][0]['Hearing_Minute'])
+        if len(hearingHour)==1:
+            hearingHour = '0' + hearingHour
+        hearingDate = zohoDetails['data'][0]['Hearing_Date'] + 'T' + hearingHour + ':' + hearingMinute + ':00'
 
         return {
             'outCourtState': outCourtState,
