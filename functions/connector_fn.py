@@ -11,28 +11,32 @@ def extract_fields_from_zoho(zohoDetails:dict,name:str,requestId:str) -> dict:
         # TODO MAKE SURE FIELD VALUES ARE CORRECT ON ZOHO SIDE
         # TODO FINALIZE ALL FIELDS ON NAA SIDE
         print('zohoDetails',zohoDetails['data'][0])
+        defendantPlantiff = False
+        caseClientName = name
         outCourtState = zohoDetails['data'][0]['State']
-        outCourtCounty = zohoDetails['data'][0]['County2']['name']
         outCourtCity = zohoDetails['data'][0]['City']
         outCourtName = zohoDetails['data'][0]['Court_Name']
         outCourtAddress = zohoDetails['data'][0]['Address']
         outCourtZip = zohoDetails['data'][0]['Zip_Code']
         hearingType = zohoDetails['data'][0]['Pick_List_5']
-        defendantPlantiff = False
         detailedInstructions = zohoDetails['data'][0]['Desired_Result']
         attorneyRecord=zohoDetails['data'][0]['Attorney_of_Record']
         fileNumber= zohoDetails['data'][0]['Client_Reference']
-        caseNumber = zohoDetails['data'][0]['Case_Number']
-
         caseName = zohoDetails['data'][0]['Case_Name1']
-        caseClientName = name
+
+        caseNumber = zohoDetails['data'][0]['Case_Number']
+        caseNumber = caseNumber if '-' not in caseNumber else caseNumber.split('-')[1].strip()
+
+        outCourtCounty = zohoDetails['data'][0]['County2']['name']
+        outCourtCounty = outCourtCounty if ':' not in outCourtCounty else outCourtCounty.split(':')[1].strip()
+
 
         hearingHour= str(zohoDetails['data'][0]['Hearing_Hour'])
         hearingMinute= str(zohoDetails['data'][0]['Hearing_Minute'])
         if len(hearingHour)==1:
             hearingHour = '0' + hearingHour
         if len(hearingMinute)==1:
-            hearingMinute = '0' + hearingHour
+            hearingMinute = '0' + hearingMinute
         hearingDate = zohoDetails['data'][0]['Hearing_Date'] + 'T' + hearingHour + ':' + hearingMinute + ':00'
 
         return {

@@ -100,7 +100,6 @@ def uploadFile(caseID: int, file_bytes: bytes, filename: str = "document.pdf") -
     files = {
         "file": (filename, file_bytes, "application/pdf"),
     }
-    print('hello world')
     response = requestPost(
         url,
         files=files,
