@@ -6,3 +6,4 @@ initial_docs/
 main.ipynb
 venv/
 .venv
+*.pdf

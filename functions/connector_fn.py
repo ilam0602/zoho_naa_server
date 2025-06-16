@@ -84,7 +84,10 @@ def create_case_from_zoho(matterID: int) -> dict:
     def _core() -> dict:           # ➊ inner fn keeps retry helper simple
         print("create_case_from_zoho – starting")
         recs = searchZohoRecords(matterID)
+        print(f"searchZohoRecords response: {recs}")
+        print(f'lookup for client reference: {recs["data"][0]["Client_Reference"]}')
         nameRes = searchZohoContacts(recs['data'][0]['Client_Reference'])
+        print(f'nameRes: {nameRes}')
         name = nameRes['data'][0]['Full_Name']
 
         zohoDetails = extract_fields_from_zoho(
@@ -152,7 +155,7 @@ def close_case_from_zoho(matterID: int) -> dict:
         return {"error": str(e), "statusCode": 500}
 
 
-def get_doc_from_zoho_upload_to_naa(docID: str, matterID: str) -> dict:
+def get_doc_from_zoho_upload_to_naa(docID: str, caseID: str) -> dict:
     def _core() -> dict:
         # 1) fetch from Zoho
         res0 = getFileFromZoho(docID)
@@ -170,7 +173,8 @@ def get_doc_from_zoho_upload_to_naa(docID: str, matterID: str) -> dict:
         filename = f"{docID}.pdf"
 
         # 4) upload as multipart
-        response = uploadFile(matterID, file_bytes, filename)
+        response = uploadFile(caseID, file_bytes, filename)
+        print(f"uploadFileRaw response: {response}")
         return response
 
     try:

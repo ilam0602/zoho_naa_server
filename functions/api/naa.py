@@ -106,7 +106,11 @@ def uploadFile(caseID: int, file_bytes: bytes, filename: str = "document.pdf") -
         headers=headers
     )
     print(f"uploadFile response: {response}")
-    return response.json()
+    if(response.status_code == 200):
+        return 'success in uploadFile for caseID: '+str(caseID)
+    else:
+        return {'error': f"Failed to upload file for caseID {caseID}: {response.text}"}
+    
 
 
 @ensure_authorized

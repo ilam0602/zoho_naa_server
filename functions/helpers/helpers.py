@@ -51,7 +51,8 @@ def requestPost(
     payload: Optional[Dict[str, Any]] = None,
     formbody: Optional[Dict[str, Any]] = None,
     files:   Optional[Dict[str, Any]] = None,
-    headers: Optional[Dict[str, Any]] = None
+    headers: Optional[Dict[str, Any]] = None,
+    data: Optional[Dict[str, Any]] = None
 ) -> requests.Response:
     """
     Sends a POST request.

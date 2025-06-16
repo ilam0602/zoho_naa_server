@@ -136,7 +136,7 @@ def searchZohoContacts(contactID: str) -> Dict[str, Any]:
     #––– 1. Enforce exact-200 success –––––––––––––––––––––––––––––––––––
     if response.status_code == 204:
         raise ZohoApiError(
-            f"Zoho search failed (HTTP {response.status_code}): empty response from search zohoRecords for matterID {matterID}"
+            f"Zoho search failed (HTTP {response.status_code}): empty response from search zoho contacts for {contactID} for url {url} "
         )
 
     #––– 2. Parse JSON safely –––––––––––––––––––––––––––––––––––––––––––
