@@ -52,7 +52,7 @@ ACCESS_TOKEN = cred['access_token']
 
 MODULE_API_NAME = 'Appearances1'
 baseUrl = f'{ZOHO_API_DOMAIN}/crm/v7/{MODULE_API_NAME}/'
-baseUrlContacts = f'{ZOHO_API_DOMAIN}/crm/v7/Contacts/search?criteria=Account_Name:equals:'
+baseUrlMatters = f'{ZOHO_API_DOMAIN}/crm/v8/Deals/search?criteria=(id:equals:'
 filesUrl = f'{ZOHO_API_DOMAIN}/crm/v7/files?id='
 
 def reInit():
@@ -115,7 +115,7 @@ def searchZohoRecords(matterID: int) -> Dict[str, Any]:
 
 
 @ensure_authorized
-def searchZohoContacts(contactID: str) -> Dict[str, Any]:
+def searchZohoContacts(matterID: str) -> Dict[str, Any]:
     """
     Look up a Zoho record by its ID.
 
@@ -126,17 +126,17 @@ def searchZohoContacts(contactID: str) -> Dict[str, Any]:
         can’t be parsed as JSON.
     """
     headers = {"Authorization": f"Zoho-oauthtoken {ACCESS_TOKEN}"}
-    url = f"{baseUrlContacts}{contactID}"
+    url = f"{baseUrlMatters}{matterID})"
     print(f"url {url}")
 
     response = requestGet(headers=headers, url=url)
-    print(f"response in searchZohoRecords {response}")  # e.g. <Response [204]>
+    print(f"response in searchZohoContacts {response}")  # e.g. <Response [204]>
     print(f'response.status_code {response.status_code}')
 
     #––– 1. Enforce exact-200 success –––––––––––––––––––––––––––––––––––
     if response.status_code == 204:
         raise ZohoApiError(
-            f"Zoho search failed (HTTP {response.status_code}): empty response from search zoho contacts for {contactID} for url {url} "
+            f"Zoho search failed (HTTP {response.status_code}): empty response from search zoho contacts for {matterID} for url {url} "
         )
 
     #––– 2. Parse JSON safely –––––––––––––––––––––––––––––––––––––––––––

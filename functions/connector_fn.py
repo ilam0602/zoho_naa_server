@@ -86,9 +86,10 @@ def create_case_from_zoho(matterID: int) -> dict:
         recs = searchZohoRecords(matterID)
         print(f"searchZohoRecords response: {recs}")
         print(f'lookup for client reference: {recs["data"][0]["Client_Reference"]}')
-        nameRes = searchZohoContacts(recs['data'][0]['Client_Reference'])
+        lookupVal = recs['data'][0]['Matter']['id']
+        nameRes = searchZohoContacts(lookupVal)
         print(f'nameRes: {nameRes}')
-        name = nameRes['data'][0]['Full_Name']
+        name = nameRes['data'][0]['Contact_Name']['name']
 
         zohoDetails = extract_fields_from_zoho(
             recs,

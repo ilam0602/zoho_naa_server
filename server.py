@@ -87,6 +87,45 @@ def close_naa_case_endpoint():
 
     return jsonify(result), status
 
+@app.route('/uploadDocsFromZoho', methods=['POST'])
+def upload_docs_endpoint():
+    # Extract token from Authorization header
+    auth_header = request.headers.get('Authorization')
+    if not auth_header:
+        return jsonify({"error": "Missing Authorization header"}), 401
+
+    # Support 'Bearer <token>' format
+    parts = auth_header.split()
+    if len(parts) == 2 and parts[0].lower() == 'bearer':
+        token = parts[1]
+    else:
+        token = auth_header
+
+    if not checkAuth(token):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.get_json(force=True) if request.is_json else request.form.to_dict()
+
+
+
+    #TODO START HERE
+    if not data or 'recordID' not in data or 'NAAM_CaseID' not in data or 'attachments' not in data:
+        return jsonify({"error": "Missing params in request body"}), 400
+
+    try:
+        matterID = int(data['matterID'])
+        caseID = int(data['NAAM_CaseID'])
+        attachments = data['attachments']
+    except (ValueError, TypeError):
+        return jsonify({"error": "'matterID' must be an integer"}), 400
+
+    result = create_case_from_zoho(matterID)
+    status = result.pop('statusCode', None)
+    if status is None:
+        status = 200 if 'response' in result else 500
+
+    return jsonify(result), status
+
 def _background_sync_loop():
     """Background thread: sync_cases every hour, forever."""
     while True:
