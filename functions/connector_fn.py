@@ -156,7 +156,7 @@ def close_case_from_zoho(matterID: int) -> dict:
         return {"error": str(e), "statusCode": 500}
 
 
-def get_doc_from_zoho_upload_to_naa(docID: str, caseID: str) -> dict:
+def get_doc_from_zoho_upload_to_naa(docID: str, docName:str,caseID: str) -> dict:
     def _core() -> dict:
         # 1) fetch from Zoho
         res0 = getFileFromZoho(docID)
@@ -170,11 +170,9 @@ def get_doc_from_zoho_upload_to_naa(docID: str, caseID: str) -> dict:
         else:
             raise TypeError(f"Unexpected payload type: {type(raw)}")
 
-        # 3) pick a filename (you can customize this)
-        filename = f"{docID}.pdf"
 
         # 4) upload as multipart
-        response = uploadFile(caseID, file_bytes, filename)
+        response = uploadFile(caseID, file_bytes, docName)
         print(f"uploadFileRaw response: {response}")
         return response
 

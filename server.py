@@ -4,7 +4,7 @@ import os
 import threading
 import time
 
-from functions.connector_fn import create_case_from_zoho, close_case_from_zoho, sync_cases
+from functions.connector_fn import create_case_from_zoho, close_case_from_zoho, sync_cases,get_doc_from_zoho_upload_to_naa
 
 app = Flask(__name__)
 load_dotenv(override=True)
@@ -109,22 +109,24 @@ def upload_docs_endpoint():
 
 
     #TODO START HERE
-    if not data or 'recordID' not in data or 'NAAM_CaseID' not in data or 'attachments' not in data:
+    if not data or 'record_id' not in data or 'NAAM_CaseID' not in data or 'attachments' not in data:
         return jsonify({"error": "Missing params in request body"}), 400
 
     try:
-        matterID = int(data['matterID'])
-        caseID = int(data['NAAM_CaseID'])
         attachments = data['attachments']
+        recordIDs = data['record_id']
+        caseID = data['NAAM_CaseID']
+        
     except (ValueError, TypeError):
         return jsonify({"error": "'matterID' must be an integer"}), 400
+    
+    for i in attachments:
+        result = get_doc_from_zoho_upload_to_naa(i['document_id'], i['document_name'],caseID)
+        status = result.pop('statusCode', None)
+        if status is None:
+            status = 200 if 'response' in result else 500
 
-    result = create_case_from_zoho(matterID)
-    status = result.pop('statusCode', None)
-    if status is None:
-        status = 200 if 'response' in result else 500
-
-    return jsonify(result), status
+    return {'response':f'successfully uploaded {len(attachments)} docs'if status == 200 else 'error'}, status
 
 def _background_sync_loop():
     """Background thread: sync_cases every hour, forever."""

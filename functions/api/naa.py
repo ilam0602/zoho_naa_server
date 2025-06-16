@@ -107,7 +107,7 @@ def uploadFile(caseID: int, file_bytes: bytes, filename: str = "document.pdf") -
     )
     print(f"uploadFile response: {response}")
     if(response.status_code == 200):
-        return 'success in uploadFile for caseID: '+str(caseID)
+        return {'response': 'success in uploadFile for caseID: '+str(caseID),'statusCode':200}
     else:
         return {'error': f"Failed to upload file for caseID {caseID}: {response.text}"}
     
