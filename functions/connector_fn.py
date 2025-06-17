@@ -30,14 +30,8 @@ def extract_fields_from_zoho(zohoDetails:dict,name:str,requestId:str) -> dict:
         outCourtCounty = zohoDetails['data'][0]['County2']['name']
         outCourtCounty = outCourtCounty if ':' not in outCourtCounty else outCourtCounty.split(':')[1].strip()
 
-
-        hearingHour= str(zohoDetails['data'][0]['Hearing_Hour'])
-        hearingMinute= str(zohoDetails['data'][0]['Hearing_Minute'])
-        if len(hearingHour)==1:
-            hearingHour = '0' + hearingHour
-        if len(hearingMinute)==1:
-            hearingMinute = '0' + hearingMinute
-        hearingDate = zohoDetails['data'][0]['Hearing_Date'] + 'T' + hearingHour + ':' + hearingMinute + ':00'
+        comboDate = zohoDetails['data'][0]['ComboDate'].split(' ')
+        hearingDate = comboDate[0] + 'T' +comboDate[1]
 
         return {
             'outCourtState': outCourtState,

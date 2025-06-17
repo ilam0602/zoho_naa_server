@@ -7,3 +7,5 @@ main.ipynb
 venv/
 .venv
 *.pdf
+*.csv
+*.xlsx
