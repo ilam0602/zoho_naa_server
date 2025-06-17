@@ -25,7 +25,7 @@ def extract_fields_from_zoho(zohoDetails:dict,name:str,requestId:str) -> dict:
         caseName = zohoDetails['data'][0]['Case_Name1']
 
         caseNumber = zohoDetails['data'][0]['Case_Number']
-        caseNumber = caseNumber if '-' not in caseNumber else caseNumber.split('-')[1].strip()
+        caseNumber = caseNumber if '-' not in caseNumber else caseNumber.split('-')[-1].strip()
 
         outCourtCounty = zohoDetails['data'][0]['County2']['name']
         outCourtCounty = outCourtCounty if ':' not in outCourtCounty else outCourtCounty.split(':')[1].strip()
@@ -120,6 +120,8 @@ def create_case_from_zoho(matterID: int) -> dict:
         addCaseIDToZohoRecord(matterID, str(caseID))
 
         return {"response": caseID, "statusCode": 200}
+        #test response
+        # return {"response": 'hello', "statusCode": 200}
 
     # ❹ run with single retry
     try:
