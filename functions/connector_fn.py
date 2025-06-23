@@ -25,13 +25,21 @@ def extract_fields_from_zoho(zohoDetails:dict,name:str,requestId:str) -> dict:
         caseName = zohoDetails['data'][0]['Case_Name1']
 
         caseNumber = zohoDetails['data'][0]['Case_Number']
-        caseNumber = caseNumber if '-' not in caseNumber else caseNumber.split('-')[-1].strip()
 
         outCourtCounty = zohoDetails['data'][0]['County2']['name']
         outCourtCounty = outCourtCounty if ':' not in outCourtCounty else outCourtCounty.split(':')[1].strip()
 
         hearingTime= str(zohoDetails['data'][0]['Twenty_Four_Hr_Hearing_Time'])
-        hearingDate = hearingTime.split(' ')[0] + 'T' + hearingTime.split(' ')[1] + ':00'
+        rawTime = hearingTime.split(' ')[1]
+        rawHour = rawTime.split(':')[0]
+        if len(rawHour) == 1:
+            rawHour = '0' + rawHour
+        rawMinute = rawTime.split(':')[1]
+        if len(rawMinute) == 1:
+            rawMinute = '0' + rawMinute
+        hearingDate = hearingTime.split(' ')[0] + 'T' + rawHour + ':' + rawMinute + ':00'
+        print('hearingTime',hearingTime)
+        print('hearingTime',hearingDate)
 
         return {
             'outCourtState': outCourtState,
@@ -114,7 +122,7 @@ def create_case_from_zoho(matterID: int) -> dict:
 
         if not isinstance(caseID, int):
             # force an exception so the retry wrapper handles it
-            raise ValueError(f"NAA returned non-int caseID: {caseID}")
+            raise ValueError(f"NAA returned non-int for matter ID {matterID} no case created: {caseID}")
 
         # ❸ write the new caseID back to Zoho
         addCaseIDToZohoRecord(matterID, str(caseID))
