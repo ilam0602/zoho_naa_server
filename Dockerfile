@@ -3,6 +3,7 @@ FROM python:3.10-slim
 
 # Set your working directory
 WORKDIR /app
+RUN mkdir credentials
 
 # Copy dependency list and install
 COPY requirements.txt ./
