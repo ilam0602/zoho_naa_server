@@ -35,19 +35,18 @@ def initConfig(path: str = "credentials/credentials.json") -> dict:
         return json.load(f)
 
     
-
-cred = initConfig()
-ZOHO_CLIENT_ID = cred['client_id']
-ZOHO_CLIENT_SECRET= cred['client_secret']
-ZOHO_REDEIRECT_URI = cred['redirect_uri']
-ZOHO_SCOPES = cred['scopes']
-ZOHO_REFRESH_TOKEN = cred['refresh_token']
-ZOHO_API_DOMAIN = cred['api_domain']
-ZOHO_TOKEN_TYPE= cred['token_type']
-ZOHO_EXPIRES_IN = cred['expires_in']
-ZOHOCRM_ACCESS_TOKEN = cred['zohocrm_access_token']
-ZOHOCRM_EXPIRES_IN = cred['zohocrm_expires_in']
-ACCESS_TOKEN = cred['access_token']
+load_dotenv(override=True)
+ZOHO_CLIENT_ID = os.getenv("ZOHO_CLIENT_ID")
+ZOHO_CLIENT_SECRET= os.getenv("ZOHO_CLIENT_SECRET")
+ZOHO_REDEIRECT_URI = os.getenv("ZOHO_REDIRECT_URI")
+ZOHO_SCOPES = os.getenv("ZOHO_SCOPES")
+ZOHO_REFRESH_TOKEN = os.getenv("ZOHOCRM_REFRESH_TOKEN")
+ZOHO_API_DOMAIN = os.getenv("ZOHO_API_DOMAIN")
+ZOHO_TOKEN_TYPE= os.getenv("ZOHO_TOKEN_TYPE")
+ZOHO_EXPIRES_IN = os.getenv("ZOHO_EXPIRES_IN")
+ZOHOCRM_ACCESS_TOKEN = os.getenv("ZOHOCRM_ACCESS_TOKEN")
+ZOHOCRM_EXPIRES_IN = os.getenv("ZOHOCRM_EXPIRES_IN")
+ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
 
 
 MODULE_API_NAME = 'Appearances1'
@@ -64,16 +63,6 @@ def reInit():
 
     zoho_generate_authtoken()
     cred = initConfig()
-    ZOHO_CLIENT_ID      = cred['client_id']
-    ZOHO_CLIENT_SECRET  = cred['client_secret']
-    ZOHO_REDEIRECT_URI  = cred['redirect_uri']
-    ZOHO_SCOPES         = cred['scopes']
-    ZOHO_REFRESH_TOKEN  = cred['refresh_token']
-    ZOHO_API_DOMAIN     = cred['api_domain']
-    ZOHO_TOKEN_TYPE     = cred['token_type']
-    ZOHO_EXPIRES_IN     = cred['expires_in']
-    ZOHOCRM_ACCESS_TOKEN= cred['zohocrm_access_token']
-    ZOHOCRM_EXPIRES_IN  = cred['zohocrm_expires_in']
     ACCESS_TOKEN        = cred['access_token']
 
 class ZohoApiError(Exception):
