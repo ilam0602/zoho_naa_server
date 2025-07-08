@@ -176,6 +176,6 @@ if __name__ == '__main__':
     # start_background_sync()
 
     # Run Flask app
-    app.run(debug=True, port=8081)
+    app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
     # prod:
     # app.run(host='0.0.0.0', port=8765, debug=False)
