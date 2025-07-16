@@ -28,7 +28,6 @@ def _request(
         response.raise_for_status()
     except requests.exceptions.HTTPError:
         # Try to extract a JSON “message” or fall back to raw text
-        print('hello world')
         try:
             detail = response.json().get("message", response.text)
         except ValueError:
@@ -37,7 +36,6 @@ def _request(
         # Only POST prints the detail, just like the original
         if method.upper() == "POST":
             print(f"detail {detail}")
-        print(f"response.status_code {response.status_code}")
 
         # Re-raise with more context
         raise requests.exceptions.HTTPError(

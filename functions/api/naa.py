@@ -2,7 +2,7 @@ import os
 import json
 from dotenv import load_dotenv
 from functions.helpers.constants import loginNAAPostUrl, getNAACasesUrl
-from functions.helpers.helpers import requestGet, requestPost, requestPatch,requestPut
+from functions.helpers.helpers import requestGet, requestPost,requestPut
 from functools import wraps
 from requests.exceptions import HTTPError
 
@@ -52,13 +52,13 @@ def ensure_authorized(func):
             try:
                 err = e.response.json()
             except Exception:
-                return {'error': str(e)}
+                return {'error': str(e), 'statusCode':e.response.status_code if e.response.status_code else 500}
             if err.get("title") == "Unauthorized":
                 # refresh token and retry once
                 reInit()
                 return func(*args, **kwargs)
             # otherwise re-raise
-            return {'error': str(e)}
+            return {'error': str(e),'statusCode': e.response.status_code}
         
     return wrapper
 
@@ -80,7 +80,6 @@ def getNAACases(pageIndex: int = None, pageSize: int = None) -> dict:
 def getCaseByID(caseID: int) -> dict:
     headers = {"Authorization": f"Bearer {token}"}
     url = f"{getNAACasesUrl}/{caseID}"
-    print(url)
     response = requestGet(url=url, headers=headers)
     return response.json()
 
@@ -91,7 +90,6 @@ def closeCase(caseID: int) -> dict:
     response = requestPut(url=url, headers=headers)
     return 'success in closeCase for caseID: '+str(caseID)
 
-#TODO TEST
 @ensure_authorized
 def uploadFile(caseID: int, file_bytes: bytes, filename: str = "document.pdf") -> dict:
     headers = {"Authorization": f"Bearer {token}"}
@@ -105,7 +103,6 @@ def uploadFile(caseID: int, file_bytes: bytes, filename: str = "document.pdf") -
         files=files,
         headers=headers
     )
-    print(f"uploadFile response: {response}")
     if(response.status_code == 200):
         return {'response': 'success in uploadFile for caseID: '+str(caseID),'statusCode':200}
     else:

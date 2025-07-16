@@ -1,7 +1,6 @@
 import os
 from dotenv import load_dotenv
-from functions.helpers.constants import loginNAAPostUrl,getNAACasesUrl
-from functions.helpers.helpers import requestGet, requestPost,requestPatch,requestPut
+from functions.helpers.helpers import requestGet, requestPut
 from functions.api.generate_zoho_auth import zoho_generate_authtoken
 import json
 from functools import wraps
@@ -14,19 +13,19 @@ def ensure_authorized(func):
         try:
             return func(*args, **kwargs)
         except HTTPError as e:
-            print(f'Error in request {e}')
             # try to parse JSON body
             try:
                 err = e.response.json()
-                print(f'err {err}')
+            except ZohoApiError as zerr:
+                return {'error': str(zerr), 'statusCode':zerr['statusCode']}
             except Exception:
-                return {'error': str(e)}
+                return {'error': str(e), 'statusCode':e.response['statusCode']}
             if "invalid oauth token" in err.get("message"):
                 # refresh token and retry once
                 reInit()
                 return func(*args, **kwargs)
             # otherwise re-raise
-            return {'error': str(e)}
+            return {'error': str(e),'statusCode': e.response['statusCode']}
         
     return wrapper
 
@@ -65,8 +64,11 @@ def reInit():
     cred = initConfig()
     ACCESS_TOKEN        = cred['access_token']
 
-class ZohoApiError(Exception):
-    """Raised when the Zoho CRM API returns an unexpected result."""
+class ZohoApiError(HTTPError):
+    """Raised when the Zoho API returns an HTTP error response."""
+    def __init__(self, message: str, response=None):
+        # HTTPError’s constructor signature is (message, response=response)
+        super().__init__(message, response=response)
 
 @ensure_authorized
 def searchZohoRecords(matterID: int) -> Dict[str, Any]:
@@ -81,16 +83,14 @@ def searchZohoRecords(matterID: int) -> Dict[str, Any]:
     """
     headers = {"Authorization": f"Zoho-oauthtoken {ACCESS_TOKEN}"}
     url = f"{baseUrl}search?criteria=id:equals:{matterID}"
-    print(f"url {url}")
 
     response = requestGet(headers=headers, url=url)
-    print(f"response in searchZohoRecords {response}")  # e.g. <Response [204]>
-    print(f'response.status_code {response.status_code}')
 
     #––– 1. Enforce exact-200 success –––––––––––––––––––––––––––––––––––
     if response.status_code == 204:
+        resString = f"Zoho search failed (HTTP {response.status_code}): empty response from search zohoRecords for matterID {matterID}"
         raise ZohoApiError(
-            f"Zoho search failed (HTTP {response.status_code}): empty response from search zohoRecords for matterID {matterID}"
+            resString, response={'error':resString,'statusCode': 409}
         )
 
     #––– 2. Parse JSON safely –––––––––––––––––––––––––––––––––––––––––––
@@ -98,8 +98,9 @@ def searchZohoRecords(matterID: int) -> Dict[str, Any]:
         return response.json()
     except (json.JSONDecodeError, ValueError) as exc:
         # 200 with an empty body (204 scenario) triggers this
+        resString = f"Zoho search returned invalid JSON: {exc} — body: {response.text}"
         raise ZohoApiError(
-            f"Zoho search returned invalid JSON: {exc} — body: {response.text}"
+            resString,response = {'error':resString,'statusCode':500}
         ) from exc
 
 
@@ -116,16 +117,14 @@ def searchZohoContacts(matterID: str) -> Dict[str, Any]:
     """
     headers = {"Authorization": f"Zoho-oauthtoken {ACCESS_TOKEN}"}
     url = f"{baseUrlMatters}{matterID})"
-    print(f"url {url}")
 
     response = requestGet(headers=headers, url=url)
-    print(f"response in searchZohoContacts {response}")  # e.g. <Response [204]>
-    print(f'response.status_code {response.status_code}')
 
     #––– 1. Enforce exact-200 success –––––––––––––––––––––––––––––––––––
     if response.status_code == 204:
+        resString = f"Zoho search failed (HTTP {response.status_code}): empty response from search zoho contacts for {matterID}"
         raise ZohoApiError(
-            f"Zoho search failed (HTTP {response.status_code}): empty response from search zoho contacts for {matterID} for url {url} "
+        resString, response={'error':resString,'statusCode': 409}
         )
 
     #––– 2. Parse JSON safely –––––––––––––––––––––––––––––––––––––––––––
@@ -133,8 +132,9 @@ def searchZohoContacts(matterID: str) -> Dict[str, Any]:
         return response.json()
     except (json.JSONDecodeError, ValueError) as exc:
         # 200 with an empty body (204 scenario) triggers this
+        resString = f"Zoho search returned invalid JSON: {exc} — body: {response.text}"
         raise ZohoApiError(
-            f"Zoho search returned invalid JSON: {exc} — body: {response.text}"
+            resString, response={'error':resString,'statusCode':500}
         ) from exc
 
 
@@ -186,25 +186,20 @@ def getListOfSyncIds() -> dict:
     urlSubmit = f"{baseUrl}search?criteria=Submission_Status:equals:Submitted"
 
     submittedResponse = requestGet(headers=headers,url=urlSubmit)
-    print(f'response {submittedResponse}')
 
     submittedResponses = []
     submittedResponses = [response['id'] for response in submittedResponse.json()['data']] if len(submittedResponse.json()['data']) > 0 else []
-    print(f'submittedResponses {len(submittedResponses)}')
 
 
     urlDead = f"{baseUrl}search?criteria=Submission_Status:equals:Dead"
     deadResponse = requestGet(headers=headers,url=urlDead)
     deadResponses = []
     deadResponses = [response['id'] for response in deadResponse.json()['data']] if len(deadResponse.json()['data']) > 0 else []
-    print(f'deadResponses {len(deadResponses)}')
 
     urlNew = f"{baseUrl}search?criteria=Submission_Status:equals:New"
     newResponse = requestGet(headers=headers,url=urlNew)
     newResponses = []
     newResponses = [response['id'] for response in newResponse.json()['data']] if len(newResponse.json()['data']) > 0 else []
-    print(f'newResponses {len(newResponses)}')
-    print(f'newResponse {newResponse.json()}')
 
 
 
@@ -212,7 +207,6 @@ def getListOfSyncIds() -> dict:
     return {'response': submittedResponses + deadResponses + newResponses}
 
 
-#TODO TEST
 #add case id to zoho record
 @ensure_authorized 
 def getFileFromZoho(fileId:str) -> dict:

@@ -1,45 +1,68 @@
-from functions.api.naa import postCase,loginNAA,closeCase,getCaseByID,uploadFile
-from functions.api.zoho import searchZohoRecords, addCaseIDToZohoRecord, getListOfSyncIds,updateResults,getFileFromZoho,searchZohoContacts
+from functions.api.naa import postCase,  closeCase, getCaseByID, uploadFile
+from functions.api.zoho import (
+    searchZohoRecords,
+    addCaseIDToZohoRecord,
+    getListOfSyncIds,
+    updateResults,
+    getFileFromZoho,
+    searchZohoContacts,
+)
 import base64
+from requests.exceptions import HTTPError
 
 
+def retry_once(fn):
+    """
+    Decorator: call the function, retry once on HTTPError or any Exception,
+    then propagate the last error if it still fails.
+    """
+    def wrapper(*args, **kwargs):
+        last_exc = None
+        for attempt in (1, 2):
+            try:
+                return fn(*args, **kwargs)
+            except (HTTPError, Exception) as e:
+                last_exc = e
+                if attempt == 2:
+                    # After second failure, re-raise
+                    raise
+        # Should never reach here
+    return wrapper
 
 
-def extract_fields_from_zoho(zohoDetails:dict,name:str,requestId:str) -> dict:
+def extract_fields_from_zoho(zohoDetails: dict, name: str, requestId: str) -> dict:
     try:
-        # Extract the required fields from the Zoho details
-        # TODO MAKE SURE FIELD VALUES ARE CORRECT ON ZOHO SIDE
-        # TODO FINALIZE ALL FIELDS ON NAA SIDE
-        print('zohoDetails',zohoDetails['data'][0])
         defendantPlantiff = False
         caseClientName = name
-        outCourtState = zohoDetails['data'][0]['State']
-        outCourtCity = zohoDetails['data'][0]['City']
-        outCourtName = zohoDetails['data'][0]['Court_Name']
-        outCourtAddress = zohoDetails['data'][0]['Address']
-        outCourtZip = zohoDetails['data'][0]['Zip_Code']
-        hearingType = zohoDetails['data'][0]['Pick_List_5']
-        detailedInstructions = zohoDetails['data'][0]['Desired_Result']
-        attorneyRecord=zohoDetails['data'][0]['Attorney_of_Record']
-        fileNumber= zohoDetails['data'][0]['Client_Reference']
-        caseName = zohoDetails['data'][0]['Case_Name1']
+        data0 = zohoDetails['data'][0]
+        print('hi')
 
-        caseNumber = zohoDetails['data'][0]['Case_Number']
+        outCourtState       = data0['State']
+        outCourtCity        = data0['City']
+        outCourtName        = data0['Court_Name']
+        outCourtAddress     = data0['Address']
+        outCourtZip         = data0['Zip_Code']
+        hearingType         = data0['Pick_List_5']
+        # detailedInstructions= data0['Desired_Result']
+        detailedInstructions= "Enter (1) any special instructions for this hearing and (2) desired results."
 
-        outCourtCounty = zohoDetails['data'][0]['County2']['name']
-        outCourtCounty = outCourtCounty if ':' not in outCourtCounty else outCourtCounty.split(':')[1].strip()
+        attorneyRecord      = data0['Attorney_of_Record']
+        fileNumber          = data0['Client_Reference']
+        caseName            = data0['Case_Name1']
+        caseNumber          = data0['Case_Number']
 
-        hearingTime= str(zohoDetails['data'][0]['Twenty_Four_Hr_Hearing_Time'])
-        rawTime = hearingTime.split(' ')[1]
-        rawHour = rawTime.split(':')[0]
-        if len(rawHour) == 1:
-            rawHour = '0' + rawHour
-        rawMinute = rawTime.split(':')[1]
-        if len(rawMinute) == 1:
-            rawMinute = '0' + rawMinute
-        hearingDate = hearingTime.split(' ')[0] + 'T' + rawHour + ':' + rawMinute + ':00'
-        print('hearingTime',hearingTime)
-        print('hearingTime',hearingDate)
+        # Normalize county field
+        outCourtCounty = data0['County2']['name']
+        if ':' in outCourtCounty:
+            outCourtCounty = outCourtCounty.split(':', 1)[1].strip()
+
+        # Parse and format hearingDate
+        hearingTime = str(data0['Twenty_Four_Hr_Hearing_Time'])
+        date_part, time_part = hearingTime.split(' ')
+        hour, minute = time_part.split(':')[:2]
+        hour   = hour.zfill(2)
+        minute = minute.zfill(2)
+        hearingDate = f"{date_part}T{hour}:{minute}:00"
 
         return {
             'outCourtState': outCourtState,
@@ -55,154 +78,131 @@ def extract_fields_from_zoho(zohoDetails:dict,name:str,requestId:str) -> dict:
             'detailedInstructions': detailedInstructions,
             'attorneyRecord': attorneyRecord,
             'caseName': caseName,
-            'caseClientName':caseClientName,
+            'caseClientName': caseClientName,
             'caseNumber': caseNumber
         }
-    except KeyError as e:
-        print(f"Key error: {e}")
+    except KeyError:
         return None
 
-def _with_single_retry(fn, *args, **kwargs):
-    """
-    Helper → call `fn` once, retry once on any Exception.
-    Returns the function’s normal result or raises the last error.
 
-    NOTE: you can move this helper to a shared utils module.
-    """
-    for attempt in (1, 2):
-        try:
-            return fn(*args, **kwargs)
-        except Exception as exc:
-            print(f"[{fn.__name__}] attempt {attempt} failed: {exc}")
-            if attempt == 2:
-                raise  # re-raise after second failure
+@retry_once
+def _core_create_case_from_zoho(matterID: int) -> dict:
+    # 1) Lookup Zoho record
+    recs = searchZohoRecords(matterID)
+    if 'error' in recs:
+        raise HTTPError(recs['error'], response=recs)
+    print('hello world')
+
+    # 2) Lookup contact name
+    lookupVal = recs['data'][0]['Matter']['id']
+    nameRes = searchZohoContacts(lookupVal)
+    print(nameRes)
+    if 'error' in nameRes:
+        raise HTTPError(nameRes['error'], response=nameRes)
+    name = nameRes['data'][0]['Contact_Name']['name']
+    print('hello world1111111')
+    print(name)
+
+    # 3) Extract fields
+    zohoDetails = extract_fields_from_zoho(recs, name, matterID)
+    if zohoDetails is None:
+        raise KeyError("Missing Zoho fields")
+    print(zohoDetails)
+
+    # 4) Create case in NAA
+    caseID = postCase(
+        outCourtState=zohoDetails['outCourtState'],
+        outCourtCounty=zohoDetails['outCourtCounty'],
+        outCourtCity=zohoDetails['outCourtCity'],
+        outCourtName=zohoDetails['outCourtName'],
+        outCourtAddress=zohoDetails['outCourtAddress'],
+        outCourtZip=zohoDetails['outCourtZip'],
+        hearingType=zohoDetails['hearingType'],
+        hearingDate=zohoDetails['hearingDate'],
+        fileNumber=zohoDetails['fileNumber'],
+        defendantPlantiff=zohoDetails['defendantPlantiff'],
+        detailedInstructions=zohoDetails['detailedInstructions'],
+        attorneyRecord=zohoDetails['attorneyRecord'],
+        caseName=zohoDetails['caseName'],
+        caseClientName=zohoDetails['caseClientName'],
+        caseNumber=zohoDetails['caseNumber']
+    )
+    if caseID.get('error') is not None:
+        raise HTTPError(f"Case not created for {matterID}: {caseID['error']}", response=caseID)
+
+    # 5) Write back to Zoho
+    addCaseIDToZohoRecord(matterID, str(caseID))
+
+    return {"response": caseID, "statusCode": 200}
 
 
 def create_case_from_zoho(matterID: int) -> dict:
-    """
-    Pull details from Zoho, open the case in NAA, write the new caseID back to Zoho.
-    Retries the whole flow once if it raises.
-    """
-    def _core() -> dict:           # ➊ inner fn keeps retry helper simple
-        print("create_case_from_zoho – starting")
-        recs = searchZohoRecords(matterID)
-        print(f"searchZohoRecords response: {recs}")
-        print(f'lookup for client reference: {recs["data"][0]["Client_Reference"]}')
-        lookupVal = recs['data'][0]['Matter']['id']
-        nameRes = searchZohoContacts(lookupVal)
-        print(f'nameRes: {nameRes}')
-        name = nameRes['data'][0]['Contact_Name']['name']
-
-        zohoDetails = extract_fields_from_zoho(
-            recs,
-            name,
-            matterID
-        )
-        print('zohoDetails',zohoDetails)
-
-        # ❷ create on NAA
-        caseID = postCase(
-            outCourtState=zohoDetails['outCourtState'],
-            outCourtCounty=zohoDetails['outCourtCounty'],
-            outCourtCity=zohoDetails['outCourtCity'],
-            outCourtName=zohoDetails['outCourtName'],
-            outCourtAddress=zohoDetails['outCourtAddress'],
-            outCourtZip=zohoDetails['outCourtZip'],
-            hearingType=zohoDetails['hearingType'],
-            hearingDate=zohoDetails['hearingDate'],
-            fileNumber=zohoDetails['fileNumber'],
-            defendantPlantiff=zohoDetails['defendantPlantiff'],
-            detailedInstructions=zohoDetails['detailedInstructions'],
-            attorneyRecord=zohoDetails['attorneyRecord'],
-            caseName=zohoDetails['caseName'],
-            caseClientName=zohoDetails['caseClientName'],
-            caseNumber=zohoDetails['caseNumber']
-        )
-        print(f"NAA caseID: {caseID}")
-
-        if not isinstance(caseID, int):
-            # force an exception so the retry wrapper handles it
-            raise ValueError(f"NAA returned non-int for matter ID {matterID} no case created: {caseID}")
-
-        # ❸ write the new caseID back to Zoho
-        addCaseIDToZohoRecord(matterID, str(caseID))
-
-        return {"response": caseID, "statusCode": 200}
-        #test response
-        # return {"response": 'hello', "statusCode": 200}
-
-    # ❹ run with single retry
     try:
-        return _with_single_retry(_core)
+        return _core_create_case_from_zoho(matterID)
+    except HTTPError as e:
+        # pull statusCode from response dict if present
+        status = e.response.get('statusCode', 500) if isinstance(e.response, dict) else 500
+        return {"error": str(e), "statusCode": status}
     except Exception as e:
         return {"error": str(e), "statusCode": 500}
+
+
+@retry_once
+def _core_close_case_from_zoho(matterID: int) -> dict:
+    zohoDetails = searchZohoRecords(matterID)
+    if 'error' in zohoDetails:
+        raise HTTPError(zohoDetails['error'], response=zohoDetails)
+
+    caseID = zohoDetails['data'][0]['NAAM_CaseID']
+    result = closeCase(caseID)
+    if not isinstance(result, str):
+        raise ValueError(f"closeCase returned error: {result}")
+
+    return {"response": result, "statusCode": 200}
 
 
 def close_case_from_zoho(matterID: int) -> dict:
-    """
-    Close an existing NAA case using Zoho record linkage.
-    Retries once on failure.
-    """
-    def _core() -> dict:
-        zohoDetails = searchZohoRecords(matterID)['data'][0]
-        caseID = zohoDetails['NAAM_CaseID']
-        result = closeCase(caseID)
-
-        if not isinstance(result, str):
-            raise ValueError(f"closeCase returned error: {result}")
-
-        return {"response": result, "statusCode": 200}
-
     try:
-        return _with_single_retry(_core)
+        return _core_close_case_from_zoho(matterID)
     except Exception as e:
-        print(f"[close_case_from_zoho] second failure: {e}")
         return {"error": str(e), "statusCode": 500}
 
 
-def get_doc_from_zoho_upload_to_naa(docID: str, docName:str,caseID: str) -> dict:
-    def _core() -> dict:
-        # 1) fetch from Zoho
-        res0 = getFileFromZoho(docID)
-        raw = res0['response']
+@retry_once
+def _core_get_doc_from_zoho_upload_to_naa(docID: str, docName: str, caseID: str) -> dict:
+    # 1) fetch from Zoho
+    res0 = getFileFromZoho(docID)
+    raw = res0['response']
 
-        # 2) if it came back as a str, assume it's base64 and decode it
-        if isinstance(raw, str):
-            file_bytes = base64.b64decode(raw)
-        elif isinstance(raw, (bytes, bytearray)):
-            file_bytes = bytes(raw)
-        else:
-            raise TypeError(f"Unexpected payload type: {type(raw)}")
+    # 2) decode if base64
+    if isinstance(raw, str):
+        file_bytes = base64.b64decode(raw)
+    elif isinstance(raw, (bytes, bytearray)):
+        file_bytes = bytes(raw)
+    else:
+        raise TypeError(f"Unexpected payload type: {type(raw)}")
+
+    # 3) upload to NAA
+    return uploadFile(caseID, file_bytes, docName)
 
 
-        # 4) upload as multipart
-        response = uploadFile(caseID, file_bytes, docName)
-        print(f"uploadFileRaw response: {response}")
-        return response
-
+def get_doc_from_zoho_upload_to_naa(docID: str, docName: str, caseID: str) -> dict:
     try:
-        return _with_single_retry(_core)
+        return _core_get_doc_from_zoho_upload_to_naa(docID, docName, caseID)
     except Exception as e:
-        print(f"[get_doc_from_zoho_upload_to_naa] second failure: {e}")
         return {"error": str(e), "statusCode": 500}
 
 
 def sync_cases():
     try:
-        #get list of matter ids
         matterIds = getListOfSyncIds()['response']
         for matterId in matterIds:
-            #get naa case id from zoho record
-            naaCaseID = searchZohoRecords(matterId)['data'][0]['NAAM_CaseID']
-            print('naaCaseID',naaCaseID)
-            #get naa case details
-            if naaCaseID is not None:
-                print(f"NAA case ID is not None for matter ID {matterId} {naaCaseID}")
-                naaCaseDetails = getCaseByID(naaCaseID)
-
-                #read case_status
+            zohoRec = searchZohoRecords(matterId)
+            caseID = zohoRec['data'][0].get('NAAM_CaseID')
+            if caseID is not None:
+                naaCaseDetails = getCaseByID(caseID)
                 caseStatus = naaCaseDetails['caseStatus']
-                caseStatusDict = {
+                status_map = {
                     1: 'Available',
                     2: 'Assigned',
                     3: 'Closed',
@@ -211,18 +211,6 @@ def sync_cases():
                     7: 'Open',
                     9: 'Soft Lock'
                 }
-                print('caseStatus',caseStatus)
-
-                #update zoho record with naa case status
-                res = updateResults(matterId,caseStatusDict[caseStatus])
-                print('update results res',res)
-            else:
-                print(f"Error: NAA case ID is None for matter ID {matterId}")
-
-
+                updateResults(matterId, status_map.get(caseStatus, 'Unknown'))
     except Exception as e:
         return {"error": str(e)}
-
-
-
-

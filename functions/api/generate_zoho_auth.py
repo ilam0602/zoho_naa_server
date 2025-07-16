@@ -65,7 +65,3 @@ def zoho_generate_authtoken(credential_file_name=CONFIG_FILE):
     json_read_a_write(mode='w', new_json=creds, json_file=credential_file_name)
 
     return "Success generating ZohoCRM access token"
-
-
-if __name__ == '__main__':
-    print(zoho_generate_authtoken())
